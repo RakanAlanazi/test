@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Late Exam Tracker (AJAX Version)</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+    input, button { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+    button { background-color: #4285f4; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #3367d6; }
+    #result { margin: 15px 0; padding: 10px; border-radius: 4px; }
+    .success { background-color: #e6f4ea; color: #0d652d; }
+    .error { background-color: #fce8e6; color: #d93025; }
+    #addForm { display: none; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <h2>Late Exam Tracker</h2>
+
+  <input type="text" id="studentId" placeholder="Enter Student ID">
+  <button onclick="checkStudent()">Check Student</button>
+
+  <div id="result"></div>
+  
+  <div id="addForm">
+    <h3>Register New Student</h3>
+    <input type="text" id="studentName" placeholder="Student Name">
+    <input type="text" id="courseCode" placeholder="Course Code">
+    <button onclick="addStudent()">Add Student</button>
+  </div>
+
+  <script>
+    // Replace with your deployed Web App URL
+    const scriptURL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+
+    function checkStudent() {
+      const id = $("#studentId").val().trim();
+      if (!id) {
+        showResult("Please enter a Student ID", "error");
+        return;
+      }
+
+      $.ajax({
+        url: scriptURL,
+        method: "GET",
+        data: { id: id },
+        dataType: "json",
+        success: function(data) {
+          if (data.found) {
+            showResult(`✅ Student Found:<br>
+              Name: ${data.name}<br>
+              Course: ${data.course}<br>
+              Times Late: ${data.count}`, "success");
+            $("#addForm").hide();
+          } else {
+            showResult("❌ Student not found. Please register below.", "error");
+            $("#addForm").show();
+          }
+        },
+        error: function(xhr, status, error) {
+          console.error("AJAX Error:", status, error);
+          showResult("Error checking student. Please try again.", "error");
+        }
+      });
+    }
+
+    function addStudent() {
+      const id = $("#studentId").val().trim();
+      const name = $("#studentName").val().trim();
+      const course = $("#courseCode").val().trim();
+
+      if (!id || !name || !course) {
+        showResult("All fields are required!", "error");
+        return;
+      }
+
+      $.ajax({
+        url: scriptURL,
+        method: "POST",
+        data: { 
+          id: id,
+          name: name,
+          course: course 
+        },
+        success: function(data) {
+          showResult(`✅ Success: ${data.message}`, "success");
+          $("#studentName, #courseCode").val(""); // Clear fields
+          $("#addForm").hide();
+        },
+        error: function(xhr, status, error) {
+          console.error("AJAX Error:", status, error);
+          try {
+            const response = JSON.parse(xhr.responseText);
+            showResult(`Error: ${response.message || "Unknown error"}`, "error");
+          } catch (e) {
+            showResult("Error adding student. Please check console.", "error");
+          }
+        }
+      });
+    }
+
+    function showResult(message, type) {
+      $("#result")
+        .removeClass("success error")
+        .addClass(type)
+        .html(message);
+    }
+  </script>
+</body>
+</html>
